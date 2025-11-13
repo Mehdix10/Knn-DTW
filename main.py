@@ -44,12 +44,13 @@ def distance_euclidienne_test():
     
 # @param point_idx - indice du point qu'on doit savoir ces distances des autres points
 # @param K - proche voisin Nombre de voisin plus proche
-def get_k_nearest_neighbors(data: pd.DataFrame, point: pd.Series, k: int):
+def get_k_nearest_neighbors(data: pd.DataFrame, point: pd.Series, k: int, distance_func):
     # Create a Series to store distances
     distances = pd.Series(index=data.index, dtype=float)
     # Compute distances between the selected point and all others
     for i in range(len(data)):
-        distances.iloc[i] = distance_euclidienne(point.values, data.iloc[i].values)
+        # distances.iloc[i] = distance_euclidienne(point.values, data.iloc[i].values)
+        distances.iloc[i] = distance_func(point.values, data.iloc[i].values)
     # Sort distances and get indices of k smallest
     nearest_neighbors = distances.nsmallest(k)
     # print(distances[1].index)
@@ -57,9 +58,6 @@ def get_k_nearest_neighbors(data: pd.DataFrame, point: pd.Series, k: int):
     return nearest_neighbors
 
 def k1n_distance_euclideinne(training_set= 450) :
-    # read_data_test()
-    # np_distance_test()
-    # distance_euclidienne_test()
     data = read_data("C:\\Users\\e2204673\\Downloads\\timeseries\\50words\\50words_TRAIN")
     test_data = read_data("C:\\Users\\e2204673\\Downloads\\timeseries\\50words\\50words_TEST")
     
@@ -68,17 +66,54 @@ def k1n_distance_euclideinne(training_set= 450) :
     res = []
     correct = 0
     for i in range(len(test_data.head(training_set))) :
-        knn = get_k_nearest_neighbors(data, test_data.iloc[i], 1)
+        knn = get_k_nearest_neighbors(data, test_data.iloc[i], 1, distance_euclidienne)
         res.append(knn)
         # print(test_data.index[i]," == ",  knn.index[0])
         if test_data.index[i] == knn.index[0] : 
             correct += 1
     print(str((correct/ training_set) * 100 )+ "%")
+    
+def DTWDistance(s: list[float], t: list[float]):
+    n, m = len(s), len(t)
+    dtw = np.full((n+1, m+1), math.inf)
+    dtw[0, 0] = 0
+
+    for i in range(1, n+1):
+        for j in range(1, m+1):
+            cost = (s[i-1] - t[j-1])**2
+            dtw[i,j] = cost + min(dtw[i-1,j], dtw[i,j-1], dtw[i-1,j-1])
+
+    return math.sqrt(dtw[n,m])
+            
+def DTWDistance_test():
+    data = read_data("C:\\Users\\e2204673\\Downloads\\timeseries\\50words\\50words_TRAIN")
+    
+    # Example: compare first two time series
+    s = data.iloc[0].values  # adjust depending on your data structure
+    t = data.iloc[1].values
+    
+    distance = DTWDistance(s, t)
+    print("DTW distance:", distance)
+
+def k1n_DTW_distance(training_set = 1) :
+    data = read_data("C:\\Users\\e2204673\\Downloads\\timeseries\\50words\\50words_TRAIN")
+    test_data = read_data("C:\\Users\\e2204673\\Downloads\\timeseries\\50words\\50words_TEST")
+    
+    # print(data.index)
+    # print(test_data.index)
+    res = []
+    correct = 0
+    for i in range(len(test_data.head(training_set))) :
+        knn = get_k_nearest_neighbors(data, test_data.iloc[i], 1, DTWDistance)
+        res.append(knn)
+        print(test_data.index[i]," == ",  knn.index[0])
+        if test_data.index[i] == knn.index[0] : 
+            correct += 1
+    print(str((correct/ training_set) * 100 )+ "%")
 
 def main():
-    k1n_distance_euclideinne()
-        
-    
+    k1n_distance_euclideinne(10)
+    k1n_DTW_distance(10)
 
 if __name__ == '__main__':
     main()
